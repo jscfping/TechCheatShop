@@ -142,4 +142,36 @@ describe('MyArray', () => {
         });
     });
 
+    describe('createFromExcel', () => {
+        it('should correctly parse tab-separated values', () => {
+            const input = 'name\tage\nJohn Doe\t25\nJane Doe\t30';
+            const result = MyArray.createFromExcel(input);
+            const expected = [
+                { name: 'John Doe', age: 25 },
+                { name: 'Jane Doe', age: 30 }
+            ];
+            expect(result).to.deep.equal(expected);
+        });
+    
+        it('should handle empty strings and trim spaces', () => {
+            const input = ' \nname\tage\n John Doe \t 25 \n Jane Doe \t 30 ';
+            const result = MyArray.createFromExcel(input);
+            const expected = [
+                { name: 'John Doe', age: 25 },
+                { name: 'Jane Doe', age: 30 }
+            ];
+            expect(result).to.deep.equal(expected);
+        });
+    
+        it('should handle strings that are not numbers', () => {
+            const input = 'name\tcountry\nJohn\tUSA\nJane\tUK';
+            const result = MyArray.createFromExcel(input);
+            const expected = [
+                { name: 'John', country: 'USA' },
+                { name: 'Jane', country: 'UK' }
+            ];
+            expect(result).to.deep.equal(expected);
+        });
+    });
+
 });

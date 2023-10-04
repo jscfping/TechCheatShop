@@ -80,4 +80,25 @@ export class MyArray extends Array {
     static createFromArray(arr) {
         return new MyArray(...arr);
     }
+
+    static createFromExcel(input) {
+        let lines = input.trim().split('\n');
+        let headers = lines[0].split('\t');
+        let data = [];
+
+        for (let i = 1; i < lines.length; i++) {
+            let obj = {};
+            let values = lines[i].split('\t');
+            for (let j = 0; j < headers.length; j++) {
+                if (!isNaN(values[j])) {
+                    obj[headers[j]] = parseInt(values[j], 10);
+                } else {
+                    obj[headers[j]] = values[j]?.trim();
+                }
+            }
+            data.push(obj);
+        }
+
+        return MyArray.createFromArray(data);
+    }
 }
