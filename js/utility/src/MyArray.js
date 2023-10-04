@@ -77,7 +77,7 @@ export class MyArray extends Array {
     }
 
 
-    static fromArray(arr) {
+    static createFromArray(arr) {
         return new MyArray(...arr);
     }
 }
