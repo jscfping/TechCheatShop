@@ -86,15 +86,18 @@ export class MyArray extends Array {
         let headers = lines[0].split('\t');
         let data = [];
 
+        const isNumeric = (value) => /^-?\d+(\.\d+)?$/.test(value);
+
         for (let i = 1; i < lines.length; i++) {
             let obj = {};
-            let values = lines[i].split('\t');
             if (!lines[i].trim()) continue;
+            let values = lines[i].split('\t');
             for (let j = 0; j < headers.length; j++) {
-                if (!isNaN(values[j])) {
-                    obj[headers[j]] = parseInt(values[j], 10);
+                const value = values[j]?.trim() ?? "";
+                if (isNumeric(value)) {
+                    obj[headers[j]] = parseFloat(value);
                 } else {
-                    obj[headers[j]] = values[j]?.trim();
+                    obj[headers[j]] = value;
                 }
             }
             data.push(obj);
