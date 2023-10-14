@@ -81,17 +81,14 @@ export class MyArray extends Array {
         return new MyArray(...arr);
     }
 
-    static createFromExcel(input) {
-        let lines = input.trim().split('\n');
-        let headers = lines[0].split('\t');
-        let data = [];
-
+    static createFromLines(lines) {
+        const data = [];
         const isNumeric = (value) => /^-?\d+(\.\d+)?$/.test(value);
+        const headers = lines[0];
 
         for (let i = 1; i < lines.length; i++) {
             let obj = {};
-            if (!lines[i].trim()) continue;
-            let values = lines[i].split('\t');
+            let values = lines[i];
             for (let j = 0; j < headers.length; j++) {
                 const value = values[j]?.trim() ?? "";
                 if (isNumeric(value)) {
@@ -102,7 +99,16 @@ export class MyArray extends Array {
             }
             data.push(obj);
         }
-
         return MyArray.createFromArray(data);
+    }
+
+    static createFromExcel(input) {
+        let lines = input.trim()
+            .split('\n')
+            .map(l => l.trim())
+            .filter(l => l)
+            .map(l => l.split('\t'));
+
+        return MyArray.createFromLines(lines);
     }
 }
