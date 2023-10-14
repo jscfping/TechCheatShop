@@ -152,7 +152,7 @@ describe('MyArray', () => {
             ];
             expect(result).to.deep.equal(expected);
         });
-    
+
         it('should handle empty strings and trim spaces', () => {
             const input = ' \nname\tage\n John Doe \t 25 \n Jane Doe \t 30 ';
             const result = MyArray.createFromExcel(input);
@@ -162,7 +162,7 @@ describe('MyArray', () => {
             ];
             expect(result).to.deep.equal(expected);
         });
-    
+
         it('should handle strings that are not numbers', () => {
             const input = 'name\tcountry\nJohn\tUSA\nJane\tUK';
             const result = MyArray.createFromExcel(input);
@@ -170,6 +170,24 @@ describe('MyArray', () => {
                 { name: 'John', country: 'USA' },
                 { name: 'Jane', country: 'UK' }
             ];
+            expect(result).to.deep.equal(expected);
+        });
+
+        it('should skip empty or whitespace-only lines', function () {
+            const input = `
+    Header1\tHeader2
+    value1\tvalue2
+    
+    \t\t
+    value3\tvalue4
+            `;
+
+            const result = MyArray.createFromExcel(input);
+
+            const expected = MyArray.createFromArray([
+                { Header1: "value1", Header2: "value2" },
+                { Header1: "value3", Header2: "value4" }
+            ]);
             expect(result).to.deep.equal(expected);
         });
     });

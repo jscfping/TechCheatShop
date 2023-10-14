@@ -89,6 +89,7 @@ export class MyArray extends Array {
         for (let i = 1; i < lines.length; i++) {
             let obj = {};
             let values = lines[i].split('\t');
+            if (!lines[i].trim()) continue;
             for (let j = 0; j < headers.length; j++) {
                 if (!isNaN(values[j])) {
                     obj[headers[j]] = parseInt(values[j], 10);
