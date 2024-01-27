@@ -1,0 +1,46 @@
+version: '3.8'
+services:
+  redis-server:
+    image: "redis"
+    ports:
+      - "6379:6379"
+    command:
+      - /bin/sh
+      - -c
+      # - Double dollars, so that the variable is not expanded by Docker Compose
+      # - Surround by quotes, so that the shell does not split the password
+      # - The ${variable:?message} syntax causes shell to exit with a non-zero
+      #   code and print a message, when the variable is not set or empty
+      # - redis-server --requirepass "$${REDIS_PASSWORD:?REDIS_PASSWORD variable is not set}"
+      - redis-server --requirepass redispw
+  node-app-1:
+    #restart: no
+    #restart: always
+    restart: on-failure
+    #restart: unless-stopped
+    build: .
+    ports:
+      - "3001:3000"
+    #depends_on:
+    #  - redis-server
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - msg=3001的api
+      - redisConnectionString=redis://:redispw@host.docker.internal:6379
+      - proxyUrl=http://host.docker.internal:3001
+    depends_on:
+      - redis-server
+  node-app-2:
+    restart: on-failure
+    build: .
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - msg=3001的api
+      - redisConnectionString=redis://:redispw@host.docker.internal:6379
+      - proxyUrl=http://host.docker.internal:3001
+    depends_on:
+      - redis-server
