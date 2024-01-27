@@ -90,6 +90,12 @@ export class MyArray extends Array {
             let obj = {};
             let values = lines[i];
             for (let j = 0; j < headers.length; j++) {
+
+                if (typeof values[j] === "number") {
+                    obj[headers[j]] = values[j];
+                    continue;
+                }
+
                 const value = values[j]?.trim() ?? "";
                 if (isNumeric(value)) {
                     obj[headers[j]] = parseFloat(value);
