@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: express-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: express-api #要抓取的label
+  template:
+    metadata:
+      labels:
+        app: express-api #pod上打的label
+    spec:
+      containers:
+      - name: express-api
+        image: simple-express-server:0.0.1
+        imagePullPolicy: IfNotPresent
+        #imagePullPolicy: Always #如果測試時版本會一直更新
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 3000
+        env:
+        - name: PORT
+          value: "3000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: express-api-nodeport
+spec:
+  selector:
+    app: express-api
+  type: NodePort
+  ports:
+  - port: 3000
+    targetPort: 3000
+    #nodePort: 30000 # 可以省略給k8s分配，填值30000-32767
+
