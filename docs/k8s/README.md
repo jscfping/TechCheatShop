@@ -24,6 +24,9 @@ docker run --rm -d -p 3000:3000 -e PORT=3000 simple-express-server:0.0.1
 # 上傳至DockerHub
 docker tag simple-express-server:0.0.1 {DockerHubUser}/simple-express-server:0.0.1 #这个命令不会改变原始镜像，而是为同一个镜像添加一个额外的引用名称
 docker push {DockerHubUser}/simple-express-server:0.0.1
+
+
+docker tag asp-dotnet-web-60 asp-dotnet-web-60:0.0.1 # 對已存在image上版本
 ```
 
 
