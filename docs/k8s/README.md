@@ -94,6 +94,7 @@ done
 
 
 multipass stop worker1 # 關閉虛擬機
+multipass start worker1 # 開機虛擬機
 ```
 
 
