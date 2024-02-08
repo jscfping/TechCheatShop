@@ -92,6 +92,8 @@ for f in 1 2; do
     multipass exec worker$f -- bash -c "curl -sfL https://get.k3s.io | K3S_URL=\"https://$MASTER_IP:6443\" K3S_TOKEN=\"$TOKEN\" sh -"
 done
 
+
+multipass stop worker1 # 關閉虛擬機
 ```
 
 
