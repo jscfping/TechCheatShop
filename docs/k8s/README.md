@@ -60,10 +60,11 @@ docker push {DockerHubUser}/simple-express-server:0.0.1
 
 ```bash
 multipass list
-multipass shell k3s
 
+sudo snap run multipass launch --name k3s --cpus 1 --memory 2G --disk 10G # 即master-node
 
-sudo snap run multipass launch --name k3s --cpus 2 --memory 8G --disk 10G # 即master-node
+multipass mount $HOME/work k3s:/home/ubuntu/work #假設~/work為工作目錄、對應虛擬機內的~/work
+
 multipass shell k3s # 進去k3s內(非走SSH通道)
 
 
@@ -78,18 +79,19 @@ curl -sfL https://get.k3s.io | sh - # 安裝k3s
 於host
 ```bash
 TOKEN=$(multipass exec k3s sudo cat /var/lib/rancher/k3s/server/node-token)
-MASTER_IP=$(multipass info k3s | grep IPv4 | awk '{print $2}')
+MASTER_IP=$(multipass info k3s | grep IPv4 | awk '{print $2}') # 就是multipass list的IPv4
 
 echo $TOKEN
 echo $MASTER_IP
 
-multipass launch --name worker1 --cpus 2 --memory 8G --disk 10G
-multipass launch --name worker2 --cpus 2 --memory 8G --disk 10G
+multipass launch --name worker1 --cpus 1 --memory 2G --disk 10G
+multipass launch --name worker2 --cpus 1 --memory 2G --disk 10G
 
 # 在worker节点虚拟机上安装k3s
 for f in 1 2; do
     multipass exec worker$f -- bash -c "curl -sfL https://get.k3s.io | K3S_URL=\"https://$MASTER_IP:6443\" K3S_TOKEN=\"$TOKEN\" sh -"
 done
+
 ```
 
 
@@ -138,4 +140,12 @@ ssh u@192.168.1.1 # 使用u使用者登入linux 192.168.1.1的SSH server
 
 
 ```
+
+```bash
+
+kubectl config get-contexts # 多台k8s叢集，看你的kubectl可以選那些
+kubectl config use-context minikube # 切換叢集 minikube
+kubectl config use-context docker-desktop # 切換叢集 docker-desktop
+```
+
 
