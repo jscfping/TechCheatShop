@@ -51,6 +51,9 @@ kubectl exec -it busybox -- sh
 kubectl delete pod busybox
 
 kubectl run busybox --rm --tty -i --restart='Never' --image=busybox:1.36.1 --namespace default --env abc=de123 --command -- sh # 一句話
+
+# 強制刪除pod
+kubectl delete pod express-api-5995b8d65-97b7g --force --grace-period=0
 ```
 
 
