@@ -49,6 +49,8 @@ minikube delete # 重置全部設定
 kubectl run busybox --image=busybox:1.36.1 --restart=Never -- sleep 3600
 kubectl exec -it busybox -- sh
 kubectl delete pod busybox
+
+kubectl run busybox --rm --tty -i --restart='Never' --image=busybox:1.36.1 --namespace default --env abc=de123 --command -- sh # 一句話
 ```
 
 
