@@ -43,6 +43,12 @@ kubectl get pods
 minikube service express-api-nodeport
 
 minikube delete # 重置全部設定
+
+
+# k8s的docker run -it --rm busybox:1.36.1 sh
+kubectl run busybox --image=busybox:1.36.1 --restart=Never -- sleep 3600
+kubectl exec -it busybox -- sh
+kubectl delete pod busybox
 ```
 
 
