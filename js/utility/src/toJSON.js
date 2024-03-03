@@ -14,7 +14,7 @@ function toJSON(object) {
             obj[key] = object[key];
         }
     }
-    return obj;
+    return JSON.stringify(obj);
 }
 
 class A {
@@ -33,7 +33,7 @@ class A {
   }
   
   const a = new A();
-  console.log(JSON.stringify(toJSON(a)));
+  console.log(toJSON(a));
 
 
   
