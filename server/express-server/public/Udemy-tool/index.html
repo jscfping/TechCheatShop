@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Udemy-tool</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <h1>Extract Udemy Lecture Time Info</h1>
+        1. search api <input type="text" value="subscriber-curriculum-items" disabled>
+        <br>
+        2. paste to below
+        <br>
+        3. click <input type="text" value="Extract" disabled>
+        <br>
+        4. copy to excel
+        <br>
+        <textarea v-model="srcJsonString" rows="10" cols="100"></textarea>
+        <br>
+        <input type="button" @click="extractTimeInfo" value="Extract">
+        <br>
+        <textarea v-model="distJsonString" rows="10" cols="100"></textarea>
+        <br>
+    </div>
+    <script src="./site.js"></script>
+</body>
+
+</html>
