@@ -3,35 +3,67 @@
 
 <head>
     <meta charset="UTF-8">
+    <link rel="shortcut icon" href="#">
     <title>MyAIChat</title>
     <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.7/dist/axios.min.js"></script>
+    <style>
+        .box {
+            display: flex;
+        }
+
+        .half {
+            width: 50%;
+        }
+    </style>
 </head>
 
 <body>
     <div id="app">
-        apiKey<input v-model="chatGPTData.apiKey"><br>
+        apiKey<input v-model="apiKey"><br>
         <textarea cols="20" rows="5">gpt-4.1-nano
 gpt-4o-mini
 gpt-4.1-mini
 gpt-4.1</textarea><br>
-        model<input v-model="chatGPTData.model"><br>
-        temperature<input v-model="chatGPTData.temperature"><br>
-        max_tokens<input v-model="chatGPTData.max_tokens"><br>
-        top_p<input v-model="chatGPTData.top_p"><br>
-        frequency_penalty<input v-model="chatGPTData.frequency_penalty"><br>
-        presence_penalty<input v-model="chatGPTData.presence_penalty"><br>
-        system<br>
-        <textarea cols="30" rows="5" v-model="chatGPTData.headData[0].content[0].text"></textarea><br>
-        inputMessage<br>
-        <textarea cols="30" rows="5" v-model="chatGPTData.inputMessage"></textarea><button
-            @click="sendAsync">send</button>
-        <hr>
-        messages<br>
-        <template v-for="(message, messageIdx) in chatGPTData.messages" :key="messageIdx">
-            <textarea cols="30" rows="5" v-model="message.req"></textarea>
-            <textarea cols="30" rows="5" v-model="message.res"></textarea><br>
-        </template>
+        <div class="box">
+            <div class="half">
+                model<input v-model="chatGPTData1.model"><br>
+                temperature<input v-model="chatGPTData1.temperature"><br>
+                max_tokens<input v-model="chatGPTData1.max_tokens"><br>
+                top_p<input v-model="chatGPTData1.top_p"><br>
+                frequency_penalty<input v-model="chatGPTData1.frequency_penalty"><br>
+                presence_penalty<input v-model="chatGPTData1.presence_penalty"><br>
+                system<br>
+                <textarea cols="30" rows="5" v-model="chatGPTData1.headData[0].content[0].text"></textarea><br>
+                inputMessage<br>
+                <textarea cols="30" rows="5" v-model="chatGPTData1.inputMessage"></textarea><button
+                    @click="sendAsync(1)">send</button>
+                <hr>
+                <template v-for="(message, messageIdx) in chatGPTData1.messages" :key="messageIdx">
+                    <textarea cols="30" rows="5" v-model="message.req"></textarea>
+                    <textarea cols="30" rows="5" v-model="message.res"></textarea><br>
+                </template>
+            </div>
+            <div class="half">
+                model<input v-model="chatGPTData2.model"><br>
+                temperature<input v-model="chatGPTData2.temperature"><br>
+                max_tokens<input v-model="chatGPTData2.max_tokens"><br>
+                top_p<input v-model="chatGPTData2.top_p"><br>
+                frequency_penalty<input v-model="chatGPTData2.frequency_penalty"><br>
+                presence_penalty<input v-model="chatGPTData2.presence_penalty"><br>
+                system<br>
+                <textarea cols="30" rows="5" v-model="chatGPTData2.headData[0].content[0].text"></textarea><br>
+                inputMessage<br>
+                <textarea cols="30" rows="5" v-model="chatGPTData2.inputMessage"></textarea><button
+                    @click="sendAsync(2)">send</button>
+                <hr>
+                <template v-for="(message, messageIdx) in chatGPTData2.messages" :key="messageIdx">
+                    <textarea cols="30" rows="5" v-model="message.req"></textarea>
+                    <textarea cols="30" rows="5" v-model="message.res"></textarea><br>
+                </template>
+            </div>
+        </div>
+
     </div>
     <script>
 
@@ -40,8 +72,29 @@ gpt-4.1</textarea><br>
         const vm = new Vue({
             el: "#app",
             data: {
-                chatGPTData: {
-                    apiKey: "",
+                apiKey: "",
+                chatGPTData1: {
+                    headData: [
+                        {
+                            "role": "system",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": ""
+                                }
+                            ]
+                        }
+                    ],
+                    model: "gpt-4.1-nano",
+                    temperature: 0.8,
+                    max_tokens: 256,
+                    top_p: 1,
+                    frequency_penalty: 0,
+                    presence_penalty: 0,
+                    inputMessage: "",
+                    messages: []
+                },
+                chatGPTData2: {
                     headData: [
                         {
                             "role": "system",
@@ -65,23 +118,29 @@ gpt-4.1</textarea><br>
             },
             mounted() {
                 const urlParams = new URLSearchParams(window.location.search);
-                this.chatGPTData.apiKey = urlParams.get("apiKey");
+                this.apiKey = urlParams.get("apiKey");
                 const system1 = urlParams.get("system1");
+                const system2 = urlParams.get("system2");
                 if (system1) {
-                    this.chatGPTData.headData[0].content[0].text = system1;
+                    this.chatGPTData1.headData[0].content[0].text = system1;
+                }
+                if (system2) {
+                    this.chatGPTData2.headData[0].content[0].text = system2;
                 }
             },
             methods: {
                 getAuthorization() {
-                    return `Bearer ${this.chatGPTData.apiKey}`;
+                    return `Bearer ${this.apiKey}`;
                 },
-                async sendAsync() {
-                    const req = this.chatGPTData.inputMessage;
-                    this.chatGPTData.inputMessage = "...";
+                async sendAsync(id) {
+                    const chatGPTData = id === 1 ? this.chatGPTData1 : this.chatGPTData2;
+
+                    const req = chatGPTData.inputMessage;
+                    chatGPTData.inputMessage = "...";
 
                     const reqData = {
-                        model: this.chatGPTData.model,
-                        messages: this.chatGPTData.headData.concat({
+                        model: chatGPTData.model,
+                        messages: chatGPTData.headData.concat({
                             role: "user",
                             content: [
                                 {
@@ -90,11 +149,11 @@ gpt-4.1</textarea><br>
                                 }
                             ]
                         }),
-                        temperature: this.chatGPTData.temperature,
-                        max_tokens: this.chatGPTData.max_tokens,
-                        top_p: this.chatGPTData.top_p,
-                        frequency_penalty: this.chatGPTData.frequency_penalty,
-                        presence_penalty: this.chatGPTData.presence_penalty,
+                        temperature: chatGPTData.temperature,
+                        max_tokens: chatGPTData.max_tokens,
+                        top_p: chatGPTData.top_p,
+                        frequency_penalty: chatGPTData.frequency_penalty,
+                        presence_penalty: chatGPTData.presence_penalty,
                     };
 
                     const res = await axios({
@@ -107,9 +166,9 @@ gpt-4.1</textarea><br>
                         data: JSON.stringify(reqData)
                     });
 
-                    this.chatGPTData.inputMessage = "";
+                    chatGPTData.inputMessage = "";
 
-                    this.chatGPTData.messages.unshift({
+                    chatGPTData.messages.unshift({
                         req: req,
                         res: res.data.choices.map(c => c.message?.content).reduce((a, c) => `${a}${c} `, "")
                     });
