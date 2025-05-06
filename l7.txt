@@ -1,0 +1,207 @@
+1. Container With Most Water
+題目：找出可以容納最多水的兩條柱子間距
+
+js
+複製
+編輯
+function maxArea(height) {
+    let left = 0, right = height.length - 1, max = 0;
+
+    while (left < right) {
+        const h = Math.min(height[left], height[right]);
+        max = Math.max(max, h * (right - left));
+        if (height[left] < height[right]) left++;
+        else right--;
+    }
+
+    return max;
+}
+🔍 範例：[1,8,6,2,5,4,8,3,7] ➜ 回傳 49
+
+2. Letter Combinations of a Phone Number
+題目：數字鍵盤對應的所有字母組合
+
+js
+複製
+編輯
+function letterCombinations(digits) {
+    if (!digits) return [];
+
+    const map = {
+        '2': 'abc', '3': 'def', '4': 'ghi', '5': 'jkl',
+        '6': 'mno', '7': 'pqrs', '8': 'tuv', '9': 'wxyz'
+    };
+
+    const result = [];
+
+    function backtrack(index, path) {
+        if (path.length === digits.length) {
+            result.push(path);
+            return;
+        }
+
+        for (const char of map[digits[index]]) {
+            backtrack(index + 1, path + char);
+        }
+    }
+
+    backtrack(0, '');
+    return result;
+}
+🔍 範例："23" ➜ ["ad","ae","af","bd","be","bf","cd","ce","cf"]
+
+3. Word Search
+題目：在 2D 字元陣列中查找字串是否存在（DFS）
+
+js
+複製
+編輯
+function exist(board, word) {
+    const rows = board.length, cols = board[0].length;
+
+    function dfs(r, c, i) {
+        if (i === word.length) return true;
+        if (r < 0 || c < 0 || r >= rows || c >= cols || board[r][c] !== word[i]) return false;
+
+        const tmp = board[r][c];
+        board[r][c] = '#';
+
+        const found = dfs(r+1, c, i+1) || dfs(r-1, c, i+1) ||
+                      dfs(r, c+1, i+1) || dfs(r, c-1, i+1);
+
+        board[r][c] = tmp;
+        return found;
+    }
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (dfs(r, c, 0)) return true;
+        }
+    }
+
+    return false;
+}
+🔍 範例：board = [["A","B","C","E"],...], word = "ABCCED" ➜ 回傳 true
+
+4. Find All Anagrams in a String
+題目：找出所有符合 anagram 的子字串起始索引
+
+js
+複製
+編輯
+function findAnagrams(s, p) {
+    const result = [], pCount = {}, sCount = {};
+    for (let c of p) pCount[c] = (pCount[c] || 0) + 1;
+
+    for (let i = 0; i < s.length; i++) {
+        const c = s[i];
+        sCount[c] = (sCount[c] || 0) + 1;
+
+        if (i >= p.length) {
+            const leftChar = s[i - p.length];
+            if (sCount[leftChar] === 1) delete sCount[leftChar];
+            else sCount[leftChar]--;
+        }
+
+        if (JSON.stringify(sCount) === JSON.stringify(pCount)) {
+            result.push(i - p.length + 1);
+        }
+    }
+
+    return result;
+}
+🔍 範例：s = "cbaebabacd", p = "abc" ➜ 回傳 [0,6]
+
+5. Minimum Height Trees
+題目：找出所有可能的最小高度樹的根節點
+
+js
+複製
+編輯
+function findMinHeightTrees(n, edges) {
+    if (n === 1) return [0];
+
+    const graph = Array.from({length: n}, () => new Set());
+    for (const [u, v] of edges) {
+        graph[u].add(v);
+        graph[v].add(u);
+    }
+
+    let leaves = [];
+    for (let i = 0; i < n; i++) {
+        if (graph[i].size === 1) leaves.push(i);
+    }
+
+    while (n > 2) {
+        n -= leaves.length;
+        const newLeaves = [];
+
+        for (const leaf of leaves) {
+            const neighbor = [...graph[leaf]][0];
+            graph[neighbor].delete(leaf);
+            if (graph[neighbor].size === 1) newLeaves.push(neighbor);
+        }
+
+        leaves = newLeaves;
+    }
+
+    return leaves;
+}
+🔍 範例：n = 4, edges = [[1,0],[1,2],[1,3]] ➜ 回傳 [1]
+
+6. Task Scheduler
+題目：給定任務與冷卻時間，求完成所有任務的最少時間
+
+js
+複製
+編輯
+function leastInterval(tasks, n) {
+    const count = {};
+    for (const task of tasks) {
+        count[task] = (count[task] || 0) + 1;
+    }
+
+    const counts = Object.values(count).sort((a, b) => b - a);
+    const max = counts[0];
+    let idleSlots = (max - 1) * n;
+
+    for (let i = 1; i < counts.length; i++) {
+        idleSlots -= Math.min(max - 1, counts[i]);
+    }
+
+    return idleSlots > 0 ? idleSlots + tasks.length : tasks.length;
+}
+🔍 範例：["A","A","A","B","B","B"], n = 2 ➜ 回傳 8
+
+7. LRU Cache
+題目：設計一個 LRU（Least Recently Used）快取系統
+
+js
+複製
+編輯
+class LRUCache {
+    constructor(capacity) {
+        this.capacity = capacity;
+        this.cache = new Map();
+    }
+
+    get(key) {
+        if (!this.cache.has(key)) return -1;
+        const value = this.cache.get(key);
+        this.cache.delete(key);
+        this.cache.set(key, value);
+        return value;
+    }
+
+    put(key, value) {
+        if (this.cache.has(key)) {
+            this.cache.delete(key);
+        }
+        this.cache.set(key, value);
+        if (this.cache.size > this.capacity) {
+            const firstKey = this.cache.keys().next().value;
+            this.cache.delete(firstKey);
+        }
+    }
+}
+🔍 範例：put(1,1); put(2,2); get(1); put(3,3) ➜ 會淘汰 key 2

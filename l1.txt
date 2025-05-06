@@ -1,0 +1,220 @@
+1. Two Sum
+題目：找出陣列中兩個數，使其和為目標值
+範例：nums = [2,7,11,15], target = 9 ➜ 回傳 [0,1]
+js
+複製
+編輯
+function twoSum(nums, target) {
+    const map = new Map();
+    for (let i = 0; i < nums.length; i++) {
+        const complement = target - nums[i];
+        if (map.has(complement)) {
+            return [map.get(complement), i];
+        }
+        map.set(nums[i], i);
+    }
+}
+2. Valid Parentheses
+題目：檢查括號是否有效配對
+範例：s = "({[]})" ➜ 回傳 true
+js
+複製
+編輯
+function isValid(s) {
+    const stack = [];
+    const map = { ')': '(', '}': '{', ']': '[' };
+    for (const char of s) {
+        if (char in map) {
+            if (stack.pop() !== map[char]) return false;
+        } else {
+            stack.push(char);
+        }
+    }
+    return stack.length === 0;
+}
+3. Merge Two Sorted Lists
+題目：合併兩個排序的 linked list
+範例：l1 = [1,2,4], l2 = [1,3,4] ➜ 回傳 [1,1,2,3,4,4]
+js
+複製
+編輯
+function mergeTwoLists(l1, l2) {
+    const dummy = new ListNode(0);
+    let current = dummy;
+    while (l1 && l2) {
+        if (l1.val < l2.val) {
+            current.next = l1;
+            l1 = l1.next;
+        } else {
+            current.next = l2;
+            l2 = l2.next;
+        }
+        current = current.next;
+    }
+    current.next = l1 || l2;
+    return dummy.next;
+}
+4. Best Time to Buy and Sell Stock
+題目：找出最大利潤（只能買一次賣一次）
+範例：prices = [7,1,5,3,6,4] ➜ 回傳 5
+js
+複製
+編輯
+function maxProfit(prices) {
+    let min = prices[0], profit = 0;
+    for (let price of prices) {
+        min = Math.min(min, price);
+        profit = Math.max(profit, price - min);
+    }
+    return profit;
+}
+5. Valid Palindrome
+題目：檢查是否為回文（忽略非字母與大小寫）
+範例：s = "A man, a plan, a canal: Panama" ➜ 回傳 true
+js
+複製
+編輯
+function isPalindrome(s) {
+    s = s.replace(/[^a-z0-9]/gi, '').toLowerCase();
+    return s === s.split('').reverse().join('');
+}
+6. Invert Binary Tree
+題目：反轉二元樹
+範例：輸入樹 [4,2,7,1,3,6,9] ➜ 輸出 [4,7,2,9,6,3,1]
+
+
+js
+複製
+編輯
+function invertTree(root) {
+    if (!root) return null;
+    [root.left, root.right] = [invertTree(root.right), invertTree(root.left)];
+    return root;
+}
+7. Valid Anagram
+題目：檢查兩字串是否為字母異位詞
+範例：s = "anagram", t = "nagaram" ➜ 回傳 true
+js
+複製
+編輯
+function isAnagram(s, t) {
+    if (s.length !== t.length) return false;
+    const count = {};
+    for (let char of s) count[char] = (count[char] || 0) + 1;
+    for (let char of t) {
+        if (!count[char]) return false;
+        count[char]--;
+    }
+    return true;
+}
+8. Binary Search
+題目：實作二分搜尋
+ 範例：nums = [-1,0,3,5,9,12], target = 9 ➜ 回傳 4
+js
+複製
+編輯
+function search(nums, target) {
+    let left = 0, right = nums.length - 1;
+    while (left <= right) {
+        const mid = Math.floor((left + right) / 2);
+        if (nums[mid] === target) return mid;
+        else if (nums[mid] < target) left = mid + 1;
+        else right = mid - 1;
+    }
+    return -1;
+}
+9. Flood Fill
+題目：類似圖形工具的填色操作
+範例：image = [[1,1,1],[1,1,0],[1,0,1]], sr = 1, sc = 1, newColor = 2 ➜ 輸出
+js
+複製
+編輯
+function floodFill(image, sr, sc, color) {
+    const original = image[sr][sc];
+    if (original === color) return image;
+    function dfs(r, c) {
+        if (r < 0 || r >= image.length || c < 0 || c >= image[0].length || image[r][c] !== original) return;
+        image[r][c] = color;
+        dfs(r + 1, c); dfs(r - 1, c); dfs(r, c + 1); dfs(r, c - 1);
+    }
+    dfs(sr, sc);
+    return image;
+}
+10. Lowest Common Ancestor of a BST
+題目：找出二元搜尋樹中的最近共同祖先
+範例：root = [6,2,8,0,4,7,9], p = 2, q = 8 ➜ 回傳 6
+js
+複製
+編輯
+function lowestCommonAncestor(root, p, q) {
+    if (p.val < root.val && q.val < root.val) return lowestCommonAncestor(root.left, p, q);
+    if (p.val > root.val && q.val > root.val) return lowestCommonAncestor(root.right, p, q);
+    return root;
+}
+11. Balanced Binary Tree
+題目：檢查二元樹是否平衡（左右高度差不超過1）
+範例：root = [3,9,20,null,null,15,7] ➜ 回傳 true
+js
+複製
+編輯
+function isBalanced(root) {
+    function dfs(node) {
+        if (!node) return 0;
+        const left = dfs(node.left);
+        if (left === -1) return -1;
+        const right = dfs(node.right);
+        if (right === -1) return -1;
+        if (Math.abs(left - right) > 1) return -1;
+        return Math.max(left, right) + 1;
+    }
+    return dfs(root) !== -1;
+}
+12. Linked List Cycle
+題目：判斷是否有環形 linked list
+範例：head = [3,2,0,-4], pos = 1 ➜ 回傳 true
+js
+複製
+編輯
+function hasCycle(head) {
+    let slow = head, fast = head;
+    while (fast && fast.next) {
+        slow = slow.next;
+        fast = fast.next.next;
+        if (slow === fast) return true;
+    }
+    return false;
+}
+13. Implement Queue using Stacks
+題目：使用兩個 stack 實作 queue
+範例：MyQueue.push(1); MyQueue.push(2); MyQueue.peek(); ➜ 回傳 1
+js
+複製
+編輯
+class MyQueue {
+    constructor() {
+        this.inStack = [];
+        this.outStack = [];
+    }
+
+    push(x) {
+        this.inStack.push(x);
+    }
+
+    pop() {
+        this.peek();
+        return this.outStack.pop();
+    }
+
+    peek() {
+        if (!this.outStack.length) {
+            while (this.inStack.length) {
+                this.outStack.push(this.inStack.pop());
+            }
+        }
+        return this.outStack[this.outStack.length - 1];
+    }
+
+    empty() {
+        return !this.inStack.length && !this.outStack.length;
+    }
+}

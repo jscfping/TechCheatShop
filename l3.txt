@@ -1,0 +1,195 @@
+1. Insert Interval
+題目：將一個新區間插入非重疊且排序的區間列表中
+
+js
+複製
+編輯
+function insert(intervals, newInterval) {
+    const result = [];
+    let i = 0;
+    
+    while (i < intervals.length && intervals[i][1] < newInterval[0]) {
+        result.push(intervals[i++]);
+    }
+    
+    while (i < intervals.length && intervals[i][0] <= newInterval[1]) {
+        newInterval[0] = Math.min(newInterval[0], intervals[i][0]);
+        newInterval[1] = Math.max(newInterval[1], intervals[i][1]);
+        i++;
+    }
+    
+    result.push(newInterval);
+    
+    while (i < intervals.length) {
+        result.push(intervals[i++]);
+    }
+    
+    return result;
+}
+🔍 範例：intervals = [[1,3],[6,9]], newInterval = [2,5] ➜ [[1,5],[6,9]]
+
+2. 01 Matrix
+題目：對每個 1，找出距離最近的 0 的距離
+
+js
+複製
+編輯
+function updateMatrix(mat) {
+    const m = mat.length, n = mat[0].length;
+    const queue = [];
+    
+    for (let i = 0; i < m; i++) {
+        for (let j = 0; j < n; j++) {
+            if (mat[i][j] === 0) {
+                queue.push([i, j]);
+            } else {
+                mat[i][j] = Infinity;
+            }
+        }
+    }
+
+    const dirs = [[1,0], [-1,0], [0,1], [0,-1]];
+    while (queue.length) {
+        const [i, j] = queue.shift();
+        for (const [di, dj] of dirs) {
+            const x = i + di, y = j + dj;
+            if (x >= 0 && x < m && y >= 0 && y < n && mat[x][y] > mat[i][j] + 1) {
+                mat[x][y] = mat[i][j] + 1;
+                queue.push([x, y]);
+            }
+        }
+    }
+    return mat;
+}
+🔍 範例：[[0,0,0],[0,1,0],[1,1,1]] ➜ [[0,0,0],[0,1,0],[1,2,1]]
+
+3. K Closest Points to Origin
+題目：從點陣列中找出距離原點最近的 K 個點
+
+js
+複製
+編輯
+function kClosest(points, k) {
+    return points
+        .sort((a, b) => (a[0]**2 + a[1]**2) - (b[0]**2 + b[1]**2))
+        .slice(0, k);
+}
+🔍 範例：points = [[1,3],[-2,2]], k = 1 ➜ [[-2,2]]
+
+4. Longest Substring Without Repeating Characters
+題目：找出最長無重複字元的子字串長度
+
+js
+複製
+編輯
+function lengthOfLongestSubstring(s) {
+    const set = new Set();
+    let left = 0, maxLen = 0;
+    for (let right = 0; right < s.length; right++) {
+        while (set.has(s[right])) {
+            set.delete(s[left++]);
+        }
+        set.add(s[right]);
+        maxLen = Math.max(maxLen, right - left + 1);
+    }
+    return maxLen;
+}
+🔍 範例："abcabcbb" ➜ 最長無重複是 "abc" ➜ 長度 3
+
+5. 3Sum
+題目：找出所有不重複的三個數加總為 0 的組合
+
+js
+複製
+編輯
+function threeSum(nums) {
+    nums.sort((a, b) => a - b);
+    const res = [];
+    for (let i = 0; i < nums.length - 2; i++) {
+        if (i > 0 && nums[i] === nums[i - 1]) continue;
+        let left = i + 1, right = nums.length - 1;
+        while (left < right) {
+            const sum = nums[i] + nums[left] + nums[right];
+            if (sum === 0) {
+                res.push([nums[i], nums[left], nums[right]]);
+                while (nums[left] === nums[left + 1]) left++;
+                while (nums[right] === nums[right - 1]) right--;
+                left++; right--;
+            } else if (sum < 0) left++;
+            else right--;
+        }
+    }
+    return res;
+}
+🔍 範例：[-1,0,1,2,-1,-4] ➜ [[-1,-1,2],[-1,0,1]]
+
+6. Binary Tree Level Order Traversal
+題目：依層級回傳二元樹節點值陣列
+
+js
+複製
+編輯
+function levelOrder(root) {
+    if (!root) return [];
+    const result = [], queue = [root];
+    while (queue.length) {
+        const level = [];
+        const len = queue.length;
+        for (let i = 0; i < len; i++) {
+            const node = queue.shift();
+            level.push(node.val);
+            if (node.left) queue.push(node.left);
+            if (node.right) queue.push(node.right);
+        }
+        result.push(level);
+    }
+    return result;
+}
+🔍 範例：樹 [3,9,20,null,null,15,7] ➜ [[3],[9,20],[15,7]]
+
+7. Clone Graph
+題目：深拷貝一個無向圖
+
+js
+複製
+編輯
+function cloneGraph(node) {
+    if (!node) return null;
+    const map = new Map();
+    function clone(node) {
+        if (map.has(node)) return map.get(node);
+        const newNode = new Node(node.val);
+        map.set(node, newNode);
+        newNode.neighbors = node.neighbors.map(clone);
+        return newNode;
+    }
+    return clone(node);
+}
+🔍 範例：節點 1 → 2, 節點 2 → 1 ➜ 會深拷貝兩個節點並保留連線
+
+8. Evaluate Reverse Polish Notation
+題目：計算逆波蘭表示法的數學表達式
+
+js
+複製
+編輯
+function evalRPN(tokens) {
+    const stack = [];
+    for (let token of tokens) {
+        if (['+', '-', '*', '/'].includes(token)) {
+            const b = stack.pop();
+            const a = stack.pop();
+            switch (token) {
+                case '+': stack.push(a + b); break;
+                case '-': stack.push(a - b); break;
+                case '*': stack.push(a * b); break;
+                case '/': stack.push(Math.trunc(a / b)); break;
+            }
+        } else {
+            stack.push(parseInt(token));
+        }
+    }
+    return stack[0];
+}
+🔍 範例：["2", "1", "+", "3", "*"] ➜ ((2+1)*3) = 9
+
