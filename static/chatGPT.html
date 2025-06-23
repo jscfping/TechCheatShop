@@ -149,11 +149,11 @@ gpt-4.1</textarea><br>
                                 }
                             ]
                         }),
-                        temperature: chatGPTData.temperature,
-                        max_tokens: chatGPTData.max_tokens,
-                        top_p: chatGPTData.top_p,
-                        frequency_penalty: chatGPTData.frequency_penalty,
-                        presence_penalty: chatGPTData.presence_penalty,
+                        temperature: Number(chatGPTData.temperature),
+                        max_tokens: Number(chatGPTData.max_tokens),
+                        top_p: Number(chatGPTData.top_p),
+                        frequency_penalty: Number(chatGPTData.frequency_penalty),
+                        presence_penalty: Number(chatGPTData.presence_penalty)
                     };
 
                     const res = await axios({
