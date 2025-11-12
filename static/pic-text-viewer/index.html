@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <script src="https://unpkg.com/vue@3.5.24/dist/vue.global.js"></script>
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+
+        .grayBG {
+            background-color: gainsboro;
+        }
+
+        #app {
+            display: flex;
+            height: 100%;
+        }
+
+        .left {
+            width: 20%;
+            background: #f8f8f8;
+            overflow-y: auto;
+            padding: 10px;
+            border-right: 1px solid #ccc;
+        }
+
+        .left img {
+            max-width: 100%;
+            max-height: 150px;
+            display: block;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+        }
+
+        .middle {
+            width: 60%;
+            overflow-y: auto;
+            padding: 10px;
+            background: #eee;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .width90 {
+            width: 90%;
+        }
+
+        .viewport {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .viewport img {
+            max-height: 600px;
+            display: block;
+        }
+
+        .viewport img:not(:first-child) {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .content h1 {
+            background-color: azure;
+            /* padding: 10px; */
+            /* border-radius: 8px; */
+            /* width: 90%; */
+            /* box-shadow: 0 0 4px rgba(0, 0, 0, 0.2); */
+        }
+
+        .right {
+            width: 20%;
+            background: #f8f8f8;
+            overflow-y: auto;
+            padding: 10px;
+            border-left: 1px solid #ccc;
+        }
+
+        .right .layer {
+            /* display: flex; */
+            align-items: center;
+            justify-content: flex-start;
+            padding: 5px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .right .layer input[type="button"] {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .layerDesc {
+            font-size: 0.7em;
+        }
+
+        .viewportEmpty {
+            height: 200px;
+            width: 200px;
+            margin-bottom: 20px;
+        }
+
+        .pageChangeDiv {
+            font-size: 3em;
+        }
+
+        .pageChangeDiv input {
+            font-size: 1em;
+
+            margin: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+
+        <div class="left">
+            <div v-for="(r, refIdx) in refs" :key="refIdx">
+                <img :src="r.img">
+                <component v-for="(content, contentIdx) in r.contents" :key="contentIdx" :is="content.tag">
+                    {{content.text}}
+                </component>
+            </div>
+        </div>
+        <div class="middle">
+            <div class="pageChangeDiv">
+                <input type="button" value="⬅️" @click="onPageAdd(-1);">
+                pages:{{pages.length === 0 ? 0 : pageIdx+1}}/{{pages.length}}
+                <input type="button" value="➡️" @click="onPageAdd(1);">
+            </div>
+
+            <div v-if="pages.length>0" class="width90">
+                <div class="viewport" :style="{ backgroundColor: viewportBGColor }">
+                    <template v-for="(layer, layerRIdx) in layers.toReversed()" :key="layerRIdx">
+                        <img v-if="layer.isShow" :src="layer.url">
+                    </template>
+                </div>
+                <div class="viewportEmpty" v-if="!layers.some(l=>l.isShow)"
+                    :style="{ backgroundColor: viewportBGColor }">null</div>
+
+                <div>
+                    viewportBGColor:<input type="color" v-model="viewportBGColor">
+                    <input type="button" value="bg" @click="bgViewportBGColor()">
+                </div>
+
+                <div class="content">
+                    <component v-for="(content, contentIdx) in pages[pageIdx].contents" :key="contentIdx"
+                        :is="content.tag">
+                        {{ content.text }}
+                    </component>
+                </div>
+            </div>
+        </div>
+        <div class="right">
+            <div>
+                <div>layers</div>
+                <input type="button" value="showAll" @click="setAllLayersShow(true);">
+                <input type="button" value="hideAll" @click="setAllLayersShow(false);">
+                <input type="button" value="reset" @click="resetAllLayers();">
+            </div>
+            <div v-for="(layer, layerIdx) in layers" :key="layerIdx" :class="{ layer: true, grayBG: layer.isSelect }">
+                <input v-if="layer.isShow" type="button" value="👓" @click="onLayerBtnClick(layerIdx);">
+                <input v-if="!layer.isShow" type="button" value="🕶️" @click="onLayerBtnClick(layerIdx);">
+                {{layer.name}}
+                <div class="layerDesc">
+                    <component v-for="(content, contentIdx) in layer.contents" :key="contentIdx" :is="content.tag">
+                        {{ content.text }}
+                    </component>
+                </div>
+            </div>
+
+
+        </div>
+
+
+    </div>
+    <script src="js/data.js"></script>
+    <script>
+        const { createApp, nextTick } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    refs: [], // [{img:"",contents:[{tag,text}]}]
+                    layers: [], //[{img:"",contents:[{tag,text}]}]
+                    pages: [], //[{tag:"div",contents:[{tag,text}]}]
+                    pageIdx: 0,
+                    viewportBGColor: "#DDD"
+                }
+            },
+            mounted() {
+                this.load(data);
+            },
+            methods: {
+                load(data) {
+
+                    this.refs = data.refs.map(r => {
+                        return {
+                            img: r.img,
+                            contents: this.toContents(r.text)
+                        }
+                    });
+
+                    this.layers = data.layers.map(l => {
+                        return {
+                            name: l.img.split("/").pop(),
+                            url: l.img,
+                            isShow: false,
+                            isSelect: false,
+                            contents: this.toContents(l.text)
+                        }
+                    }).reverse();
+
+                    this.pages = data.contnets.map(c => {
+                        return {
+                            layers: c.layers,
+                            contents: this.toContents(c.text)
+                        };
+                    });
+
+                    this.pageIdx = 0;
+                    this.updateViewPort();
+                },
+                onPageAdd(val) {
+                    if (this.pages.length === 0) return;
+                    let v = this.pageIdx + val;
+                    if (v < 0) v = 0;
+                    if (v >= this.pages.length) v = this.pages.length - 1;
+                    this.pageIdx = v;
+                    this.updateViewPort();
+                },
+                updateViewPort() {
+                    if (this.pages.length === 0) return;
+                    const page = this.pages[this.pageIdx];
+                    this.layers.forEach(layer => {
+                        layer.isShow = page.layers.some(l => l === layer.url);
+                        layer.isSelect = layer.isShow;
+                    });
+                },
+                onLayerBtnClick(layerIdx) {
+                    this.layers[layerIdx].isShow = !this.layers[layerIdx].isShow;
+                },
+                toContents(text) {
+                    return text.split("\n").map(l => {
+                        if (l.startsWith("# ")) return { tag: "h1", text: l.slice(2) };
+                        return { tag: "div", text: l.trim() };
+                    });
+                },
+                setAllLayersShow(isShow) {
+                    this.layers.forEach(l => {
+                        l.isShow = isShow;
+                    });
+                },
+                resetAllLayers() {
+                    this.layers.forEach(l => {
+                        l.isShow = l.isSelect
+                    });
+                },
+                bgViewportBGColor() {
+                    this.viewportBGColor = "#EEE";
+                }
+            }
+        }).mount("#app");
+    </script>
+</body>
+
+</html>
