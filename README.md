@@ -3,6 +3,8 @@
 
 - [github page](https://jscfping.github.io/TechCheatShop)
 
+- [emoji.html](https://jscfping.github.io/TechCheatShop/static/emoji.html)
+
 - [chatGPT.html](https://jscfping.github.io/TechCheatShop/static/chatGPT.html)
 
 - [pic-text-viewer](https://jscfping.github.io/TechCheatShop/static/pic-text-viewer/index.html)
