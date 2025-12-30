@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="shortcut icon" href="#">
+    <title>tools</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <style>
+        .main {
+            margin-left: 5rem;
+            margin-top: 3rem;
+        }
+
+        .width40 {
+            display: inline-block;
+            width: 40%;
+        }
+
+        .width20 {
+            display: inline-block;
+            width: 20%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main">
+        <div id="app">
+            <h2>data diff</h2>
+            <hr>
+            <div class="width40">
+                dataA:<br>
+                <textarea v-model="dataA" rows="10" cols="50"></textarea>
+            </div>
+            <div class="width40">
+                dataB:<br>
+                <textarea v-model="dataB" rows="10" cols="50"></textarea>
+                <button v-on:click="runDiff">runDiff</button>
+            </div>
+            <br>
+            <div class="width20">
+                OR:<br>
+                <textarea v-model="getKeyString(countsOR)" rows="10" cols="30"></textarea>
+            </div>
+            <div class="width20">
+                AND:<br>
+                <textarea v-model="getKeyString(countsAND)" rows="10" cols="30"></textarea>
+            </div>
+            <div class="width20">
+                OnlyA:<br>
+                <textarea v-model="getKeyString(countsOnlyA)" rows="10" cols="30"></textarea>
+            </div>
+            <div class="width20">
+                OnlyB:<br>
+                <textarea v-model="getKeyString(countsOnlyB)" rows="10" cols="30"></textarea>
+            </div>
+            <br>
+            <div class="width20">
+                countsOR:<br>
+                <textarea v-model="getCountsString(countsOR)" rows="10" cols="30"></textarea>
+            </div>
+            <div class="width20">
+                countsAND:<br>
+                <textarea v-model="getCountsString(countsAND)" rows="10" cols="30"></textarea>
+            </div>
+            <div class="width20">
+                countsOnlyA:<br>
+                <textarea v-model="getCountsString(countsOnlyA)" rows="10" cols="30"></textarea>
+            </div>
+            <div class="width20">
+                countsOnlyB:<br>
+                <textarea v-model="getCountsString(countsOnlyB)" rows="10" cols="30"></textarea>
+            </div>
+
+
+
+        </div>
+        <div id="jsTools">
+            <h2>KeyWord Selecter</h2>
+            <hr>
+            <div class="width40">
+                input:<br>
+                <textarea v-model="keyWordSelecterIn" rows="10" cols="30"></textarea>
+                <textarea v-model="regexp" rows="1" cols="20"></textarea>
+            </div>
+            <div class="width40">
+                output:<br>
+                <textarea v-model="keyWordSelecterOut" rows="10" cols="30"></textarea>
+                <button v-on:click="seelctKeywords()">select</button>
+            </div>
+            <h2>JS Class Generater</h2>
+            <hr>
+            <div class="width40">
+                ClassKeys:<br>
+                <textarea v-model="classKeys" rows="10" cols="50"></textarea>
+            </div>
+            <div class="width40">
+                Class:<br>
+                <textarea v-model="jsClass" rows="10" cols="50"></textarea>
+                <button v-on:click="generate()">generate</button>
+            </div>
+            <br>
+            <h2>Lines Formater</h2>
+            <hr>
+            <div class="width20">
+                SrcData:<br>
+                <textarea v-model="formatSrcData" rows="15" cols="40"></textarea>
+            </div>
+            <div class="width40" style="
+                    max-height: 15rem;
+                    overflow: scroll;
+                    background-color: #ccc;
+                    padding: 20px;
+                    margin: 10px;">
+                <input type="text" v-model="formatComboIndexs">
+                <button v-on:click="executeComboFormater()">comboFormater</button>
+                <hr>
+                <template v-for="(formatCallback, index) in formatCallbacks">
+                    {{index}}:
+                    <textarea v-model="formatCallbacks[index]" :rows="formatCallbacks[index].split('\n').length"
+                        :cols="Math.max(30, ...formatCallbacks[index].split('\n').map(s=>s.length))">
+                    </textarea>
+                    <button v-on:click="executeFormat([index])">formater</button>
+                    <button v-on:click="addFormatRule(index)">+</button>
+                    <br>
+                </template>
+            </div>
+            <div class="width20">
+                DistData:<br>
+                <textarea v-model="formatDistData" rows="15" cols="40"></textarea>
+            </div>
+            <br>
+
+
+            <h2>ExcelToTable</h2>
+            <hr>
+            <div>
+                <textarea v-model="excelToTableSrc" rows="15" cols="40"></textarea>
+                <input type="button" value="convert" v-on:click="onBtnExcelToHtmlTableClick()">
+                <textarea v-model="excelToTableDist" rows="15" cols="40"></textarea>
+            </div>
+
+
+        </div>
+    </div>
+
+    <script src="app.js?20251106a"></script>
+    <script src="jsTools.js?20251111a"></script>
+</body>
+
+</html>
