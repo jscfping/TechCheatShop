@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圖片轉換器</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        [v-cloak] { display: none; }
+        .drop-zone-active {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+        }
+        .main-preview {
+            max-height: 50vh;
+            max-width: 100%;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-100 to-slate-200 min-h-screen">
+    <div id="app" v-cloak class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- 標題 -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                🖼️ 圖片轉換器
+            </h1>
+            <p class="text-slate-500 mt-2">支援 WebP、PNG、JPG 格式轉換</p>
+            <div class="flex justify-center gap-2 mt-4 flex-wrap">
+                <span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">WebP 轉換</span>
+                <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">PNG 轉換</span>
+                <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">JPG 轉換</span>
+                <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">圖片壓縮</span>
+                <span class="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm font-medium">批次轉檔</span>
+            </div>
+        </header>
+
+        <!-- 上傳區域 -->
+        <div 
+            class="border-4 border-dashed border-slate-300 rounded-2xl p-12 text-center mb-8 transition-all duration-300 cursor-pointer hover:border-blue-400 hover:bg-blue-50"
+            :class="{ 'drop-zone-active': isDragging }"
+            @dragover.prevent="isDragging = true"
+            @dragleave.prevent="isDragging = false"
+            @drop.prevent="handleDrop"
+            @click="$refs.fileInput.click()"
+            tabindex="0"
+        >
+            <input 
+                type="file" 
+                ref="fileInput" 
+                class="hidden" 
+                accept="image/*" 
+                multiple 
+                @change="handleFileSelect"
+            >
+            <div class="text-6xl mb-4">📁</div>
+            <p class="text-xl text-slate-600 font-medium">點擊選擇圖片、拖曳圖片到此處</p>
+            <p class="text-slate-400 mt-2">或按 Ctrl+V 貼上剪貼簿中的圖片</p>
+        </div>
+
+        <!-- 圖廊區域 -->
+        <div v-if="images.length > 0" class="mb-8">
+            <!-- 標題列 -->
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-semibold text-slate-700">
+                    📷 圖片預覽 ({{ images.length }} 張)
+                    <span v-if="currentConvertedFormat" class="text-base font-normal text-emerald-600 ml-2">
+                        ✨ 已轉換為 {{ currentConvertedFormat.toUpperCase() }}
+                    </span>
+                </h2>
+                <button 
+                    @click="clearAll"
+                    class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                >
+                    🗑️ 清除全部
+                </button>
+            </div>
+
+            <!-- 中央大圖預覽區 -->
+            <div class="bg-slate-800 rounded-2xl p-6 mb-4 flex items-center justify-center min-h-[300px]" style="max-height: 55vh;">
+                <div v-if="selectedImage" class="relative">
+                    <img 
+                        :src="selectedImage.convertedUrl || selectedImage.preview" 
+                        class="main-preview rounded-lg shadow-2xl cursor-pointer"
+                        :alt="getDownloadFilename(selectedImage)"
+                        @click="downloadImage(selectedImage)"
+                    >
+                    <!-- 下載按鈕 -->
+                    <button 
+                        @click="downloadImage(selectedImage)"
+                        class="absolute bottom-4 right-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg flex items-center gap-2"
+                    >
+                        💾 下載
+                    </button>
+                </div>
+                <p v-else class="text-slate-400 text-lg">請選擇一張圖片</p>
+            </div>
+
+            <!-- 大圖下方提示 -->
+            <div v-if="selectedImage" class="text-center mb-4">
+                <span class="text-slate-500 text-sm">
+                    💾 點擊圖片下載: <strong class="text-slate-700">{{ getDownloadFilename(selectedImage) }}</strong>
+                </span>
+            </div>
+
+            <!-- 下方縮圖列表 -->
+            <div class="flex gap-3 overflow-x-auto py-3 px-1">
+                <div 
+                    v-for="(img, index) in images" 
+                    :key="img.id"
+                    class="relative flex-shrink-0 group cursor-pointer"
+                >
+                    <img 
+                        :src="img.convertedUrl || img.preview" 
+                        class="w-20 h-20 object-cover rounded-lg shadow-md transition-all duration-200"
+                        :class="selectedImage && selectedImage.id === img.id ? 'ring-4 ring-blue-500 scale-110' : 'hover:ring-2 hover:ring-slate-400 hover:scale-105'"
+                        :alt="getDownloadFilename(img)"
+                        @click="selectImage(img)"
+                    >
+                    <!-- 下載按鈕 -->
+                    <button 
+                        @click.stop="downloadImage(img)"
+                        class="absolute bottom-1 right-1 w-6 h-6 bg-blue-600 text-white text-xs rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-700 flex items-center justify-center shadow-lg"
+                        title="下載"
+                    >
+                        💾
+                    </button>
+                    <!-- 刪除按鈕 -->
+                    <button 
+                        @click.stop="removeImage(index)"
+                        class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white text-xs rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 flex items-center justify-center shadow-lg"
+                    >
+                        ✕
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 轉換控制面板 -->
+        <div v-if="images.length > 0" class="space-y-4">
+            <!-- WebP 控制項 -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">🌐</span>
+                        <span class="font-bold text-lg text-emerald-600">WebP</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-slate-600">壓縮品質:</label>
+                        <input 
+                            type="number" 
+                            v-model.number="webpQuality" 
+                            min="1" 
+                            max="100" 
+                            class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        >
+                        <span class="text-slate-500">%</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-slate-600">縮放比例:</label>
+                        <input 
+                            type="number" 
+                            v-model.number="webpScale" 
+                            min="1" 
+                            max="200" 
+                            class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        >
+                        <span class="text-slate-500">%</span>
+                    </div>
+                    <div class="flex gap-2 ml-auto">
+                        <button 
+                            @click="convertAll('webp')"
+                            class="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                        >
+                            轉成 WebP
+                        </button>
+                        <button 
+                            @click="downloadAllAsZip('webp')"
+                            class="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition-colors"
+                            :disabled="isProcessing"
+                        >
+                            {{ isProcessing && currentFormat === 'webp' ? '處理中...' : '全部存成 WebP.zip' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PNG 控制項 -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">🖼️</span>
+                        <span class="font-bold text-lg text-blue-600">PNG</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-slate-600">壓縮品質:</label>
+                        <input 
+                            type="number" 
+                            v-model.number="pngQuality" 
+                            min="1" 
+                            max="100" 
+                            class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                        <span class="text-slate-500">%</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-slate-600">縮放比例:</label>
+                        <input 
+                            type="number" 
+                            v-model.number="pngScale" 
+                            min="1" 
+                            max="200" 
+                            class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                        <span class="text-slate-500">%</span>
+                    </div>
+                    <div class="flex gap-2 ml-auto">
+                        <button 
+                            @click="convertAll('png')"
+                            class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                        >
+                            轉成 PNG
+                        </button>
+                        <button 
+                            @click="downloadAllAsZip('png')"
+                            class="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors"
+                            :disabled="isProcessing"
+                        >
+                            {{ isProcessing && currentFormat === 'png' ? '處理中...' : '全部存成 PNG.zip' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- JPG 控制項 -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">📸</span>
+                        <span class="font-bold text-lg text-orange-600">JPG</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-slate-600">壓縮品質:</label>
+                        <input 
+                            type="number" 
+                            v-model.number="jpgQuality" 
+                            min="1" 
+                            max="100" 
+                            class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        >
+                        <span class="text-slate-500">%</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-slate-600">縮放比例:</label>
+                        <input 
+                            type="number" 
+                            v-model.number="jpgScale" 
+                            min="1" 
+                            max="200" 
+                            class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        >
+                        <span class="text-slate-500">%</span>
+                    </div>
+                    <div class="flex gap-2 ml-auto">
+                        <button 
+                            @click="convertAll('jpg')"
+                            class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                        >
+                            轉成 JPG
+                        </button>
+                        <button 
+                            @click="downloadAllAsZip('jpg')"
+                            class="px-4 py-2 bg-orange-700 text-white rounded-lg hover:bg-orange-800 transition-colors"
+                            :disabled="isProcessing"
+                        >
+                            {{ isProcessing && currentFormat === 'jpg' ? '處理中...' : '全部存成 JPG.zip' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref } = Vue;
+
+        createApp({
+            setup() {
+                const images = ref([]);
+                const selectedImage = ref(null);
+                const isDragging = ref(false);
+                const isProcessing = ref(false);
+                const currentFormat = ref('');
+                const currentConvertedFormat = ref('');
+
+                // 品質設定
+                const webpQuality = ref(80);
+                const pngQuality = ref(100);
+                const jpgQuality = ref(80);
+
+                // 縮放設定
+                const webpScale = ref(100);
+                const pngScale = ref(100);
+                const jpgScale = ref(100);
+
+                let imageIdCounter = 0;
+
+                // 生成時間戳檔名（加入序號確保唯一）
+                const generateTimestampFilename = (ext, index = null) => {
+                    const now = new Date();
+                    const timestamp = now.getFullYear().toString() +
+                        String(now.getMonth() + 1).padStart(2, '0') +
+                        String(now.getDate()).padStart(2, '0') + '-' +
+                        String(now.getHours()).padStart(2, '0') +
+                        String(now.getMinutes()).padStart(2, '0') +
+                        String(now.getSeconds()).padStart(2, '0');
+                    if (index !== null) {
+                        return `${timestamp}_${String(index + 1).padStart(3, '0')}.${ext}`;
+                    }
+                    return `${timestamp}.${ext}`;
+                };
+
+                // 取得下載檔名
+                const getDownloadFilename = (img) => {
+                    if (img.convertedFilename) {
+                        return img.convertedFilename;
+                    }
+                    // 未轉換時，使用原圖副檔名產生時間戳檔名（用 ID 當序號）
+                    const ext = img.name.split('.').pop().toLowerCase() || 'png';
+                    const index = images.value.findIndex(i => i.id === img.id);
+                    return generateTimestampFilename(ext, index >= 0 ? index : null);
+                };
+
+                // 取得下載 URL
+                const getDownloadUrl = (img) => {
+                    return img.convertedUrl || img.preview;
+                };
+
+                // 選擇圖片
+                const selectImage = (img) => {
+                    selectedImage.value = img;
+                };
+
+                // 下載單張圖片
+                const downloadImage = (img) => {
+                    const url = img.convertedUrl || img.preview;
+                    const filename = getDownloadFilename(img);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                };
+
+                // 處理檔案選擇
+                const handleFileSelect = (e) => {
+                    const files = Array.from(e.target.files);
+                    addImages(files);
+                    e.target.value = '';
+                };
+
+                // 處理拖曳
+                const handleDrop = (e) => {
+                    isDragging.value = false;
+                    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+                    addImages(files);
+                };
+
+                // 全域貼上事件
+                document.addEventListener('paste', (e) => {
+                    const items = Array.from(e.clipboardData?.items || []);
+                    const imageFiles = items
+                        .filter(item => item.type.startsWith('image/'))
+                        .map(item => item.getAsFile())
+                        .filter(Boolean);
+                    if (imageFiles.length > 0) {
+                        addImages(imageFiles);
+                    }
+                });
+
+                // 新增圖片
+                const addImages = (files) => {
+                    files.forEach(file => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const newImg = {
+                                id: ++imageIdCounter,
+                                name: file.name,
+                                file: file,
+                                preview: e.target.result,
+                                convertedUrl: null,
+                                convertedFilename: null,
+                                convertedBlob: null
+                            };
+                            images.value.push(newImg);
+                            // 自動選擇第一張圖片
+                            if (!selectedImage.value) {
+                                selectedImage.value = newImg;
+                            }
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                };
+
+                // 移除單張圖片
+                const removeImage = (index) => {
+                    const img = images.value[index];
+                    if (img.convertedUrl) {
+                        URL.revokeObjectURL(img.convertedUrl);
+                    }
+                    images.value.splice(index, 1);
+                    // 如果移除的是當前選中的圖片，選擇第一張
+                    if (selectedImage.value && selectedImage.value.id === img.id) {
+                        selectedImage.value = images.value[0] || null;
+                    }
+                };
+
+                // 清除全部
+                const clearAll = () => {
+                    // 釋放 Blob URL
+                    images.value.forEach(img => {
+                        if (img.convertedUrl) {
+                            URL.revokeObjectURL(img.convertedUrl);
+                        }
+                    });
+                    images.value = [];
+                    selectedImage.value = null;
+                    currentConvertedFormat.value = '';
+                };
+
+                // 轉換圖片（index 用於確保檔名唯一）
+                const convertImage = (imgData, format, quality, scale, index = null) => {
+                    return new Promise((resolve) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            
+                            const newWidth = Math.round(img.width * (scale / 100));
+                            const newHeight = Math.round(img.height * (scale / 100));
+                            
+                            canvas.width = newWidth;
+                            canvas.height = newHeight;
+                            
+                            // JPG 需要白色背景
+                            if (format === 'jpg' || format === 'jpeg') {
+                                ctx.fillStyle = '#FFFFFF';
+                                ctx.fillRect(0, 0, newWidth, newHeight);
+                            }
+                            
+                            ctx.drawImage(img, 0, 0, newWidth, newHeight);
+                            
+                            let mimeType = 'image/webp';
+                            let ext = 'webp';
+                            if (format === 'png') {
+                                mimeType = 'image/png';
+                                ext = 'png';
+                            } else if (format === 'jpg' || format === 'jpeg') {
+                                mimeType = 'image/jpeg';
+                                ext = 'jpg';
+                            }
+                            
+                            // 使用時間戳檔名（帶序號）
+                            const filename = generateTimestampFilename(ext, index);
+                            
+                            // 使用 toBlob 並建立 Blob URL
+                            canvas.toBlob((blob) => {
+                                const blobUrl = URL.createObjectURL(blob);
+                                resolve({
+                                    dataUrl: blobUrl,
+                                    filename: filename,
+                                    blob: blob
+                                });
+                            }, mimeType, quality / 100);
+                        };
+                        img.src = imgData.preview;
+                    });
+                };
+
+                // DataURL 轉 Blob
+                const dataURLtoBlob = (dataURL) => {
+                    const arr = dataURL.split(',');
+                    const mime = arr[0].match(/:(.*?);/)[1];
+                    const bstr = atob(arr[1]);
+                    let n = bstr.length;
+                    const u8arr = new Uint8Array(n);
+                    while (n--) {
+                        u8arr[n] = bstr.charCodeAt(n);
+                    }
+                    return new Blob([u8arr], { type: mime });
+                };
+
+                // 轉換全部圖片（直接更新原圖）
+                const convertAll = async (format) => {
+                    let quality, scale;
+                    if (format === 'webp') {
+                        quality = webpQuality.value;
+                        scale = webpScale.value;
+                    } else if (format === 'png') {
+                        quality = pngQuality.value;
+                        scale = pngScale.value;
+                    } else {
+                        quality = jpgQuality.value;
+                        scale = jpgScale.value;
+                    }
+
+                    for (let i = 0; i < images.value.length; i++) {
+                        const img = images.value[i];
+                        // 釋放舊的 Blob URL
+                        if (img.convertedUrl) {
+                            URL.revokeObjectURL(img.convertedUrl);
+                        }
+                        const result = await convertImage(img, format, quality, scale, i);
+                        // 直接更新原圖資料
+                        images.value[i].convertedUrl = result.dataUrl;
+                        images.value[i].convertedFilename = result.filename;
+                        images.value[i].convertedBlob = result.blob;
+                    }
+                    currentConvertedFormat.value = format;
+                };
+
+                // 下載全部為 ZIP
+                const downloadAllAsZip = async (format) => {
+                    if (isProcessing.value) return;
+                    
+                    isProcessing.value = true;
+                    currentFormat.value = format;
+
+                    let quality, scale;
+                    if (format === 'webp') {
+                        quality = webpQuality.value;
+                        scale = webpScale.value;
+                    } else if (format === 'png') {
+                        quality = pngQuality.value;
+                        scale = pngScale.value;
+                    } else {
+                        quality = jpgQuality.value;
+                        scale = jpgScale.value;
+                    }
+
+                    try {
+                        const zip = new JSZip();
+                        
+                        for (let i = 0; i < images.value.length; i++) {
+                            const img = images.value[i];
+                            const result = await convertImage(img, format, quality, scale, i);
+                            zip.file(result.filename, result.blob);
+                            
+                            // 同時更新圖片預覽
+                            if (img.convertedUrl) {
+                                URL.revokeObjectURL(img.convertedUrl);
+                            }
+                            img.convertedUrl = result.dataUrl;
+                            img.convertedFilename = result.filename;
+                            img.convertedBlob = result.blob;
+                        }
+                        currentConvertedFormat.value = format;
+
+                        const content = await zip.generateAsync({ type: 'blob' });
+                        
+                        // 生成檔名 imgs-yyyyMMdd-HHmmss.zip
+                        const now = new Date();
+                        const timestamp = now.getFullYear().toString() +
+                            String(now.getMonth() + 1).padStart(2, '0') +
+                            String(now.getDate()).padStart(2, '0') + '-' +
+                            String(now.getHours()).padStart(2, '0') +
+                            String(now.getMinutes()).padStart(2, '0') +
+                            String(now.getSeconds()).padStart(2, '0');
+                        
+                        const filename = `imgs-${timestamp}.zip`;
+                        
+                        // 下載
+                        const url = URL.createObjectURL(content);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    } catch (error) {
+                        console.error('ZIP 打包失敗:', error);
+                        alert('ZIP 打包失敗，請重試');
+                    } finally {
+                        isProcessing.value = false;
+                        currentFormat.value = '';
+                    }
+                };
+
+                return {
+                    images,
+                    selectedImage,
+                    isDragging,
+                    isProcessing,
+                    currentFormat,
+                    currentConvertedFormat,
+                    webpQuality,
+                    pngQuality,
+                    jpgQuality,
+                    webpScale,
+                    pngScale,
+                    jpgScale,
+                    handleFileSelect,
+                    handleDrop,
+                    selectImage,
+                    downloadImage,
+                    removeImage,
+                    clearAll,
+                    convertAll,
+                    downloadAllAsZip,
+                    getDownloadFilename,
+                    getDownloadUrl
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
