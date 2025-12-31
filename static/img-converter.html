@@ -307,19 +307,47 @@
 
                 let imageIdCounter = 0;
 
-                // 生成時間戳檔名（加入序號確保唯一）
-                const generateTimestampFilename = (ext, index = null) => {
+                // 生成時間戳檔名（用於剪貼簿貼上等沒有原始檔名的情況）
+                const generateTimestampFilename = (ext) => {
                     const now = new Date();
                     const timestamp = now.getFullYear().toString() +
                         String(now.getMonth() + 1).padStart(2, '0') +
-                        String(now.getDate()).padStart(2, '0') + '-' +
+                        String(now.getDate()).padStart(2, '0') +
                         String(now.getHours()).padStart(2, '0') +
                         String(now.getMinutes()).padStart(2, '0') +
                         String(now.getSeconds()).padStart(2, '0');
-                    if (index !== null) {
-                        return `${timestamp}_${String(index + 1).padStart(3, '0')}.${ext}`;
-                    }
                     return `${timestamp}.${ext}`;
+                };
+
+                // 檢查是否為剪貼簿圖片（沒有真實檔名）
+                const isClipboardImage = (filename) => {
+                    // 剪貼簿貼上的圖片通常沒有副檔名或是 image.png 這類通用名稱
+                    return !filename || filename === '' || /^image\.(png|jpg|jpeg|webp|gif|bmp)$/i.test(filename);
+                };
+
+                // 取得不含副檔名的檔案基本名稱
+                const getBaseName = (filename) => {
+                    const lastDot = filename.lastIndexOf('.');
+                    return lastDot > 0 ? filename.substring(0, lastDot) : filename;
+                };
+
+                // 生成唯一檔名（處理重複）
+                const generateUniqueFilename = (baseName, ext, usedNames) => {
+                    let filename = `${baseName}.${ext}`;
+                    if (!usedNames.has(filename)) {
+                        usedNames.add(filename);
+                        return filename;
+                    }
+                    // 檔名重複，加上序號
+                    let counter = 1;
+                    while (true) {
+                        filename = `${baseName}-${String(counter).padStart(3, '0')}.${ext}`;
+                        if (!usedNames.has(filename)) {
+                            usedNames.add(filename);
+                            return filename;
+                        }
+                        counter++;
+                    }
                 };
 
                 // 取得下載檔名
@@ -327,10 +355,12 @@
                     if (img.convertedFilename) {
                         return img.convertedFilename;
                     }
-                    // 未轉換時，使用原圖副檔名產生時間戳檔名（用 ID 當序號）
+                    // 未轉換時，使用原圖副檔名
                     const ext = img.name.split('.').pop().toLowerCase() || 'png';
-                    const index = images.value.findIndex(i => i.id === img.id);
-                    return generateTimestampFilename(ext, index >= 0 ? index : null);
+                    if (isClipboardImage(img.name)) {
+                        return generateTimestampFilename(ext);
+                    }
+                    return img.name;
                 };
 
                 // 取得下載 URL
@@ -432,8 +462,8 @@
                     currentConvertedFormat.value = '';
                 };
 
-                // 轉換圖片（index 用於確保檔名唯一）
-                const convertImage = (imgData, format, quality, scale, index = null) => {
+                // 轉換圖片
+                const convertImage = (imgData, format, quality, scale, usedNames) => {
                     return new Promise((resolve) => {
                         const img = new Image();
                         img.onload = () => {
@@ -464,8 +494,18 @@
                                 ext = 'jpg';
                             }
                             
-                            // 使用時間戳檔名（帶序號）
-                            const filename = generateTimestampFilename(ext, index);
+                            // 決定檔名：剪貼簿圖片用時間戳，其他保留原名
+                            let filename;
+                            if (isClipboardImage(imgData.name)) {
+                                filename = generateUniqueFilename(
+                                    generateTimestampFilename(ext).replace(`.${ext}`, ''),
+                                    ext,
+                                    usedNames
+                                );
+                            } else {
+                                const baseName = getBaseName(imgData.name);
+                                filename = generateUniqueFilename(baseName, ext, usedNames);
+                            }
                             
                             // 使用 toBlob 並建立 Blob URL
                             canvas.toBlob((blob) => {
@@ -508,13 +548,14 @@
                         scale = jpgScale.value;
                     }
 
+                    const usedNames = new Set();
                     for (let i = 0; i < images.value.length; i++) {
                         const img = images.value[i];
                         // 釋放舊的 Blob URL
                         if (img.convertedUrl) {
                             URL.revokeObjectURL(img.convertedUrl);
                         }
-                        const result = await convertImage(img, format, quality, scale, i);
+                        const result = await convertImage(img, format, quality, scale, usedNames);
                         // 直接更新原圖資料
                         images.value[i].convertedUrl = result.dataUrl;
                         images.value[i].convertedFilename = result.filename;
@@ -544,10 +585,11 @@
 
                     try {
                         const zip = new JSZip();
+                        const usedNames = new Set();
                         
                         for (let i = 0; i < images.value.length; i++) {
                             const img = images.value[i];
-                            const result = await convertImage(img, format, quality, scale, i);
+                            const result = await convertImage(img, format, quality, scale, usedNames);
                             zip.file(result.filename, result.blob);
                             
                             // 同時更新圖片預覽
