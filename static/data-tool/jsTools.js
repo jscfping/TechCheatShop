@@ -1,5 +1,8 @@
 
 
+const jsonList = [];
+
+
 const vueJsTools = new Vue({
     el: "#jsTools",
     data: {
@@ -114,6 +117,46 @@ ${setters}
         },
         onBtnExcelToHtmlTableClick() {
             this.excelToTableDist = this.excelToHtmlTable(this.excelToTableSrc);
+        },
+        onJsonBrowserBtnClick(event) {
+            const files = Array.from(event.target.files);
+            if (files.length === 0) {
+                return;
+            }
+
+            const filePromises = files.map(file => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const jsonData = JSON.parse(e.target.result);
+                            resolve(jsonData);
+                        } catch (error) {
+                            console.error(`Error parsing ${file.name}:`, error);
+                            reject(error);
+                        }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsText(file);
+                });
+            });
+
+            Promise.all(filePromises).then(results => {
+                results.forEach(r => jsonList.push(r));
+                console.log(`type
+jsonList
+to use or
+let d = jsonList[jsonList.length - 1];
+to get the last one.`);
+                event.target.value = '';
+            }).catch(error => {
+                alert("Error loading JSON files: " + error.message);
+            });
         }
     }
 });
+
+
+
+
+
