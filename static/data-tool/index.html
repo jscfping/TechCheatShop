@@ -21,12 +21,28 @@
             display: inline-block;
             width: 20%;
         }
+
+        input.long{
+            width: 200px;
+        }
     </style>
 </head>
 
 <body>
     <div class="main">
         <div id="app">
+            <div>
+                <div>
+                    loadTime<input disabled :value="format(loadTime)" class="long">
+                    loadTimeUnixSecs<input disabled :value="getLoadTimeUnixSecs()" class="long">
+                    loadTimeUnixMs<input disabled :value="getLoadTimeUnixMs()" class="long">
+                </div>
+                <div>
+                    new Date().getTime()<input v-model="unixInput" class="long">
+                    ifUnixInputSecs<input disabled :value="getTimeIfUnixInputSecs()" class="long">
+                    ifUnixInputMs<input disabled :value="getTimeIfUnixInputMs()" class="long">
+                </div>
+            </div>
             <h2>data diff</h2>
             <hr>
             <div class="width40">
