@@ -9,21 +9,30 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         [v-cloak] { display: none; }
-        .drop-zone-active {
-            border-color: #3b82f6 !important;
-            background-color: #eff6ff !important;
-        }
         .main-preview {
             max-height: 50vh;
             max-width: 100%;
             object-fit: contain;
         }
+        .preview-drop-active {
+            outline: 4px solid #3b82f6;
+            outline-offset: -4px;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-100 to-slate-200 min-h-screen">
     <div id="app" v-cloak class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- 隱藏 file input -->
+        <input 
+            type="file" 
+            ref="fileInput" 
+            class="hidden" 
+            multiple 
+            @change="handleFileSelect"
+        >
+
         <!-- 標題 -->
-        <header class="text-center mb-8">
+        <header class="text-center mb-6">
             <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 🖼️ 圖片轉換器
             </h1>
@@ -35,29 +44,65 @@
                 <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">圖片壓縮</span>
                 <span class="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm font-medium">批次轉檔</span>
             </div>
+            <div class="flex justify-center mt-5">
+                <button
+                    @click="$refs.fileInput.click()"
+                    class="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-md font-medium flex items-center gap-2 text-base"
+                >
+                    📁 選擇檔案
+                </button>
+            </div>
         </header>
 
-        <!-- 上傳區域 -->
+        <!-- 中央大圖預覽區（兼具拖曳上傳功能） -->
         <div 
-            class="border-4 border-dashed border-slate-300 rounded-2xl p-12 text-center mb-8 transition-all duration-300 cursor-pointer hover:border-blue-400 hover:bg-blue-50"
-            :class="{ 'drop-zone-active': isDragging }"
+            class="bg-slate-800 rounded-2xl p-6 mb-4 flex items-center justify-center min-h-[300px] transition-all duration-300"
+            :class="isDragging ? 'preview-drop-active' : ''"
+            style="max-height: 55vh;"
             @dragover.prevent="isDragging = true"
             @dragleave.prevent="isDragging = false"
             @drop.prevent="handleDrop"
-            @click="$refs.fileInput.click()"
-            tabindex="0"
         >
-            <input 
-                type="file" 
-                ref="fileInput" 
-                class="hidden" 
-                accept="image/*" 
-                multiple 
-                @change="handleFileSelect"
+            <!-- 無圖片：null 示意圖框 + 拖曳提示 -->
+            <div 
+                v-if="images.length === 0" 
+                class="text-center select-none w-full flex flex-col items-center justify-center"
             >
-            <div class="text-6xl mb-4">📁</div>
-            <p class="text-xl text-slate-600 font-medium">點擊選擇圖片、拖曳圖片到此處</p>
-            <p class="text-slate-400 mt-2">或按 Ctrl+V 貼上剪貼簿中的圖片</p>
+                <div class="w-56 h-44 border-4 border-dashed border-slate-500 rounded-2xl flex flex-col items-center justify-center mb-5 bg-slate-700/50 transition-all duration-200">
+                    <svg class="w-16 h-16 text-slate-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span class="text-slate-500 text-sm font-mono font-semibold tracking-widest">null</span>
+                </div>
+                <p class="text-slate-300 text-lg font-medium">拖曳圖片到此處</p>
+                <p class="text-slate-500 text-sm mt-1">點擊選擇 或 按 Ctrl+V 貼上</p>
+            </div>
+
+            <!-- 有圖但未選擇 -->
+            <p v-else-if="!selectedImage" class="text-slate-400 text-lg">請選擇一張圖片</p>
+
+            <!-- 顯示選中圖片 -->
+            <div v-else class="relative">
+                <img 
+                    :src="selectedImage.convertedUrl || selectedImage.preview" 
+                    class="main-preview rounded-lg shadow-2xl"
+                    :alt="getDownloadFilename(selectedImage)"
+                >
+                <!-- 下載按鈕 -->
+                <button 
+                    @click.stop="downloadImage(selectedImage)"
+                    class="absolute bottom-4 right-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg flex items-center gap-2"
+                >
+                    💾 下載
+                </button>
+            </div>
+        </div>
+
+        <!-- 大圖下方提示 -->
+        <div v-if="selectedImage" class="text-center mb-4">
+            <span class="text-slate-500 text-sm">
+                💾 點擊圖片下載: <strong class="text-slate-700">{{ getDownloadFilename(selectedImage) }}</strong>
+            </span>
         </div>
 
         <!-- 圖廊區域 -->
@@ -71,38 +116,11 @@
                     </span>
                 </h2>
                 <button 
-                    @click="clearAll"
+                    @click.stop="clearAll"
                     class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                 >
                     🗑️ 清除全部
                 </button>
-            </div>
-
-            <!-- 中央大圖預覽區 -->
-            <div class="bg-slate-800 rounded-2xl p-6 mb-4 flex items-center justify-center min-h-[300px]" style="max-height: 55vh;">
-                <div v-if="selectedImage" class="relative">
-                    <img 
-                        :src="selectedImage.convertedUrl || selectedImage.preview" 
-                        class="main-preview rounded-lg shadow-2xl cursor-pointer"
-                        :alt="getDownloadFilename(selectedImage)"
-                        @click="downloadImage(selectedImage)"
-                    >
-                    <!-- 下載按鈕 -->
-                    <button 
-                        @click="downloadImage(selectedImage)"
-                        class="absolute bottom-4 right-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg flex items-center gap-2"
-                    >
-                        💾 下載
-                    </button>
-                </div>
-                <p v-else class="text-slate-400 text-lg">請選擇一張圖片</p>
-            </div>
-
-            <!-- 大圖下方提示 -->
-            <div v-if="selectedImage" class="text-center mb-4">
-                <span class="text-slate-500 text-sm">
-                    💾 點擊圖片下載: <strong class="text-slate-700">{{ getDownloadFilename(selectedImage) }}</strong>
-                </span>
             </div>
 
             <!-- 下方縮圖列表 -->
@@ -117,7 +135,7 @@
                         class="w-20 h-20 object-cover rounded-lg shadow-md transition-all duration-200"
                         :class="selectedImage && selectedImage.id === img.id ? 'ring-4 ring-blue-500 scale-110' : 'hover:ring-2 hover:ring-slate-400 hover:scale-105'"
                         :alt="getDownloadFilename(img)"
-                        @click="selectImage(img)"
+                        @click.stop="selectImage(img)"
                     >
                     <!-- 下載按鈕 -->
                     <button 
@@ -396,7 +414,7 @@
                 // 處理拖曳
                 const handleDrop = (e) => {
                     isDragging.value = false;
-                    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+                    const files = Array.from(e.dataTransfer.files);
                     addImages(files);
                 };
 
@@ -416,20 +434,23 @@
                 const addImages = (files) => {
                     files.forEach(file => {
                         const reader = new FileReader();
+                        reader.onerror = (e) => console.error('讀取檔案失敗:', file.name, e);
                         reader.onload = (e) => {
-                            const newImg = {
-                                id: ++imageIdCounter,
-                                name: file.name,
-                                file: file,
-                                preview: e.target.result,
-                                convertedUrl: null,
-                                convertedFilename: null,
-                                convertedBlob: null
-                            };
-                            images.value.push(newImg);
-                            // 自動選擇第一張圖片
-                            if (!selectedImage.value) {
+                            try {
+                                const newImg = {
+                                    id: ++imageIdCounter,
+                                    name: file.name,
+                                    file: file,
+                                    preview: e.target.result,
+                                    convertedUrl: null,
+                                    convertedFilename: null,
+                                    convertedBlob: null
+                                };
+                                images.value.push(newImg);
+                                // 自動選擇最新加入的圖片
                                 selectedImage.value = newImg;
+                            } catch (err) {
+                                console.error('新增圖片失敗:', file.name, err);
                             }
                         };
                         reader.readAsDataURL(file);
@@ -464,58 +485,72 @@
 
                 // 轉換圖片
                 const convertImage = (imgData, format, quality, scale, usedNames) => {
-                    return new Promise((resolve) => {
+                    return new Promise((resolve, reject) => {
                         const img = new Image();
+                        img.onerror = (e) => {
+                            console.error('載入圖片失敗:', imgData.name, e);
+                            reject(e);
+                        };
                         img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            const ctx = canvas.getContext('2d');
-                            
-                            const newWidth = Math.round(img.width * (scale / 100));
-                            const newHeight = Math.round(img.height * (scale / 100));
-                            
-                            canvas.width = newWidth;
-                            canvas.height = newHeight;
-                            
-                            // JPG 需要白色背景
-                            if (format === 'jpg' || format === 'jpeg') {
-                                ctx.fillStyle = '#FFFFFF';
-                                ctx.fillRect(0, 0, newWidth, newHeight);
+                            try {
+                                const canvas = document.createElement('canvas');
+                                const ctx = canvas.getContext('2d');
+                                
+                                const newWidth = Math.round(img.width * (scale / 100));
+                                const newHeight = Math.round(img.height * (scale / 100));
+                                
+                                canvas.width = newWidth;
+                                canvas.height = newHeight;
+                                
+                                // JPG 需要白色背景
+                                if (format === 'jpg' || format === 'jpeg') {
+                                    ctx.fillStyle = '#FFFFFF';
+                                    ctx.fillRect(0, 0, newWidth, newHeight);
+                                }
+                                
+                                ctx.drawImage(img, 0, 0, newWidth, newHeight);
+                                
+                                let mimeType = 'image/webp';
+                                let ext = 'webp';
+                                if (format === 'png') {
+                                    mimeType = 'image/png';
+                                    ext = 'png';
+                                } else if (format === 'jpg' || format === 'jpeg') {
+                                    mimeType = 'image/jpeg';
+                                    ext = 'jpg';
+                                }
+                                
+                                // 決定檔名：剪貼簿圖片用時間戳，其他保留原名
+                                let filename;
+                                if (isClipboardImage(imgData.name)) {
+                                    filename = generateUniqueFilename(
+                                        generateTimestampFilename(ext).replace(`.${ext}`, ''),
+                                        ext,
+                                        usedNames
+                                    );
+                                } else {
+                                    const baseName = getBaseName(imgData.name);
+                                    filename = generateUniqueFilename(baseName, ext, usedNames);
+                                }
+                                
+                                // 使用 toBlob 並建立 Blob URL
+                                canvas.toBlob((blob) => {
+                                    if (!blob) {
+                                        console.error('canvas.toBlob 失敗:', imgData.name);
+                                        reject(new Error('toBlob failed'));
+                                        return;
+                                    }
+                                    const blobUrl = URL.createObjectURL(blob);
+                                    resolve({
+                                        dataUrl: blobUrl,
+                                        filename: filename,
+                                        blob: blob
+                                    });
+                                }, mimeType, quality / 100);
+                            } catch (err) {
+                                console.error('轉換圖片失敗:', imgData.name, err);
+                                reject(err);
                             }
-                            
-                            ctx.drawImage(img, 0, 0, newWidth, newHeight);
-                            
-                            let mimeType = 'image/webp';
-                            let ext = 'webp';
-                            if (format === 'png') {
-                                mimeType = 'image/png';
-                                ext = 'png';
-                            } else if (format === 'jpg' || format === 'jpeg') {
-                                mimeType = 'image/jpeg';
-                                ext = 'jpg';
-                            }
-                            
-                            // 決定檔名：剪貼簿圖片用時間戳，其他保留原名
-                            let filename;
-                            if (isClipboardImage(imgData.name)) {
-                                filename = generateUniqueFilename(
-                                    generateTimestampFilename(ext).replace(`.${ext}`, ''),
-                                    ext,
-                                    usedNames
-                                );
-                            } else {
-                                const baseName = getBaseName(imgData.name);
-                                filename = generateUniqueFilename(baseName, ext, usedNames);
-                            }
-                            
-                            // 使用 toBlob 並建立 Blob URL
-                            canvas.toBlob((blob) => {
-                                const blobUrl = URL.createObjectURL(blob);
-                                resolve({
-                                    dataUrl: blobUrl,
-                                    filename: filename,
-                                    blob: blob
-                                });
-                            }, mimeType, quality / 100);
                         };
                         img.src = imgData.preview;
                     });
@@ -555,11 +590,15 @@
                         if (img.convertedUrl) {
                             URL.revokeObjectURL(img.convertedUrl);
                         }
-                        const result = await convertImage(img, format, quality, scale, usedNames);
-                        // 直接更新原圖資料
-                        images.value[i].convertedUrl = result.dataUrl;
-                        images.value[i].convertedFilename = result.filename;
-                        images.value[i].convertedBlob = result.blob;
+                        try {
+                            const result = await convertImage(img, format, quality, scale, usedNames);
+                            // 直接更新原圖資料
+                            images.value[i].convertedUrl = result.dataUrl;
+                            images.value[i].convertedFilename = result.filename;
+                            images.value[i].convertedBlob = result.blob;
+                        } catch (err) {
+                            console.error('跳過轉換失敗的圖片:', img.name, err);
+                        }
                     }
                     currentConvertedFormat.value = format;
                 };
@@ -589,16 +628,20 @@
                         
                         for (let i = 0; i < images.value.length; i++) {
                             const img = images.value[i];
-                            const result = await convertImage(img, format, quality, scale, usedNames);
-                            zip.file(result.filename, result.blob);
-                            
-                            // 同時更新圖片預覽
-                            if (img.convertedUrl) {
-                                URL.revokeObjectURL(img.convertedUrl);
+                            try {
+                                const result = await convertImage(img, format, quality, scale, usedNames);
+                                zip.file(result.filename, result.blob);
+                                
+                                // 同時更新圖片預覽
+                                if (img.convertedUrl) {
+                                    URL.revokeObjectURL(img.convertedUrl);
+                                }
+                                img.convertedUrl = result.dataUrl;
+                                img.convertedFilename = result.filename;
+                                img.convertedBlob = result.blob;
+                            } catch (err) {
+                                console.error('跳過轉換失敗的圖片:', img.name, err);
                             }
-                            img.convertedUrl = result.dataUrl;
-                            img.convertedFilename = result.filename;
-                            img.convertedBlob = result.blob;
                         }
                         currentConvertedFormat.value = format;
 
